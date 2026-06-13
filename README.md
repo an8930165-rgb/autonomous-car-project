@@ -39,23 +39,24 @@ sudo apt update && sudo apt upgrade -y
 
 # Cài đặt các thư viện yêu cầu
 pip install opencv-python numpy flask pyserial torch torchvision ultralytics
-
-
-**Bước 2: Khởi động hệ thống**
+Bước 2: Khởi động hệ thống
 Kết nối nguồn cho vi điều khiển ATmega16 và mạch động lực L298N.
 
-Kết nối Raspberry Pi. Tại terminal của Pi, chạy file thực thi chính: python main.py
+Kết nối Raspberry Pi. Tại terminal của Pi, chạy file thực thi chính:
 
+Bash
+python main.py
+Lưu ý: Ngay khi chạy code, xe sẽ ở trạng thái khóa an toàn (MANUAL Mode - Tốc độ 0).
 
-**Bước 3: Giám sát qua Web Dashboard**
+Bước 3: Giám sát qua Web Dashboard
 Mở trình duyệt web trên máy tính/điện thoại dùng chung mạng Wi-Fi với Raspberry Pi.
 
 Truy cập vào địa chỉ IP của Pi với cổng 5000 (Ví dụ: http://192.168.1.100:5000).
 
 Chuyển sang chế độ AUTO để xe bắt đầu tự hành, hoặc dùng các nút điều hướng để lái xe bằng tay.
 
-Cấu trúc Thư mục:
-
+📁 Cấu trúc Thư mục
+Plaintext
 autonomous-car-project/
 ├── main.py                 # File thực thi chính, khởi tạo đa luồng
 ├── lane_detection.py       # Thuật toán xử lý ảnh và bám làn
@@ -68,6 +69,7 @@ autonomous-car-project/
 ├── models/
 │   └── Traffic_signss.pt   # Trọng số mô hình AI đã huấn luyện
 └── README.md
-
-Tác giả
+👨‍💻 Tác giả
 Phan Nhật Anh, Nguyễn Việt Anh - Thiết kế kiến trúc, phát triển phần mềm và phần cứng.
+
+Dự án này được phát triển nhằm mục đích nghiên cứu ứng dụng thị giác máy tính và hệ thống nhúng thời gian thực.
