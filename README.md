@@ -69,7 +69,3 @@ autonomous-car-project/
 ├── models/
 │   └── Traffic_signss.pt   # Trọng số mô hình AI đã huấn luyện
 └── README.md
-👨‍💻 Tác giả
-Phan Nhật Anh, Nguyễn Việt Anh - Thiết kế kiến trúc, phát triển phần mềm và phần cứng.
-
-Dự án này được phát triển nhằm mục đích nghiên cứu ứng dụng thị giác máy tính và hệ thống nhúng thời gian thực.
