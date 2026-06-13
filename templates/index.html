@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autonomous Car Dashboard</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #ffffff; text-align: center; margin: 0; padding: 20px; }
+        
+        /* Cấu hình flexbox để dàn 3 khối nằm ngang, căn đều lên viền trên */
+        .container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; align-items: flex-start; }
+        .panel { background-color: #1e1e1e; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
+        h1 { color: #00ff88; margin-top: 0; }
+        
+        /* 1. CỘT TRÁI: Khu vực Camera */
+        .video-feed { width: 640px; max-width: 100%; border-radius: 8px; border: 2px solid #333; display: block; }
+        
+        /* 2. CỘT GIỮA: Cụm Điều khiển */
+        .control-panel { width: 320px; }
+        .telemetry { font-size: 1.3em; text-align: left; margin-bottom: 20px; }
+        .telemetry span { font-weight: bold; color: #00ddff; }
+        .controls { display: grid; grid-template-columns: repeat(3, 70px); gap: 10px; justify-content: center; margin-bottom: 10px;}
+        .btn { padding: 15px; font-size: 1.2em; cursor: pointer; border: none; border-radius: 8px; background-color: #333; color: white; transition: 0.2s; user-select: none;}
+        .btn:active { background-color: #00ff88; color: black; transform: scale(0.95); }
+        .empty { visibility: hidden; }
+        .mode-panel { margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 15px; }
+        .btn-mode { padding: 12px 25px; font-size: 1.1em; cursor: pointer; border: none; border-radius: 8px; background-color: #444; color: white; margin: 0 5px;}
+        .active-mode { background-color: #00ff88; color: black; font-weight: bold; box-shadow: 0 0 10px #00ff88; }
+        
+        /* Nút Lách Vật Cản */
+        #btnAvoidToggle { width: 100%; padding: 12px; font-size: 1.1em; cursor: pointer; border: none; border-radius: 8px; font-weight: bold; transition: 0.2s; margin-bottom: 20px; }
+        .avoid-on { background-color: #00ff88; color: black; box-shadow: 0 0 8px #00ff88; }
+        .avoid-off { background-color: #ff4444; color: white; box-shadow: 0 0 8px #ff4444; }
+
+        /* 3. CỘT PHẢI: Cụm thanh trượt (Settings) */
+        .settings-panel { text-align: left; width: 340px; }
+        .slider-container { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .slider-container label { width: 95px; font-weight: bold; color: #aaa; font-size: 0.9em;}
+        .slider-container span { width: 40px; text-align: right; color: #00ff88; font-weight: bold; }
+        input[type=range] { flex-grow: 1; margin: 0 10px; cursor: pointer; accent-color: #00ff88; }
+        hr { border: 1px solid #333; margin: 20px 0; }
+    </style>
+</head>
+<body>
+
+    <h1>🚀 TRUNG TÂM ĐIỀU KHIỂN</h1>
+    
+    <div class="container">
+        
+        <div class="panel">
+            <h3 style="margin-top:0;">Camera Live</h3>
+            <img src="/video_feed" class="video-feed" alt="Video Stream Loading...">
+        </div>
+
+        <div class="panel control-panel">
+            <div class="mode-panel">
+                <button id="btn-auto" class="btn-mode active-mode" onclick="setMode('AUTO')">🤖 AUTO</button>
+                <button id="btn-manual" class="btn-mode" onclick="setMode('MANUAL')">🕹️ MANUAL</button>
+            </div>
+
+            <button id="btnAvoidToggle" class="avoid-off" onclick="toggleAvoidance()">🛑 Lách vật cản: TẮT</button>
+
+            <div class="telemetry">
+                <p>Vận tốc: <span id="val-speed">0</span></p>
+                <p>Góc lái: <span id="val-steer">0</span>°</p>
+                <p>Biển báo: <span id="val-sign">None</span></p>
+            </div>
+
+            <div class="controls">
+                <div class="empty"></div>
+                <button class="btn" onmousedown="sendCommand('UP')" onmouseup="sendCommand('STOP')" ontouchstart="sendCommand('UP')" ontouchend="sendCommand('STOP')">W</button>
+                <div class="empty"></div>
+                
+                <button class="btn" onmousedown="sendCommand('LEFT')" onmouseup="sendCommand('STOP')" ontouchstart="sendCommand('LEFT')" ontouchend="sendCommand('STOP')">A</button>
+                <button class="btn" onmousedown="sendCommand('DOWN')" onmouseup="sendCommand('STOP')" ontouchstart="sendCommand('DOWN')" ontouchend="sendCommand('STOP')">S</button>
+                <button class="btn" onmousedown="sendCommand('RIGHT')" onmouseup="sendCommand('STOP')" ontouchstart="sendCommand('RIGHT')" ontouchend="sendCommand('STOP')">D</button>
+            </div>
+            <p style="color: #666; font-size: 0.8em; margin:0;">(Dùng phím WASD hoặc chạm nút)</p>
+        </div>
+
+        <div class="panel settings-panel">
+            <h3 style="margin-top: 0; color: #00ddff; text-align: center;">⚙️ Tinh chỉnh AI</h3>
+            
+            <div class="slider-container">
+                <label>Tốc độ nền</label>
+                <input type="range" id="t-speed" min="0" max="255" value="80" oninput="sendSettings()">
+                <span id="v-speed">80</span>
+            </div>
+            
+            <hr style="margin: 15px 0;">
+
+            <div class="slider-container">
+                <label>K_Heading</label>
+                <input type="range" id="t-kheading" min="0" max="5" step="0.1" value="1.6" oninput="sendSettings()">
+                <span id="v-kheading">1.6</span>
+            </div>
+            
+            <div class="slider-container">
+                <label>K_Offset</label>
+                <input type="range" id="t-koffset" min="0" max="5" step="0.1" value="1.5" oninput="sendSettings()">
+                <span id="v-koffset">1.5</span>
+            </div>
+
+            <hr style="margin: 15px 0;">
+
+            <div class="slider-container"><label>Lower H</label><input type="range" id="t-lh" min="0" max="255" value="0" oninput="sendSettings()"><span id="v-lh">0</span></div>
+            <div class="slider-container"><label>Lower S</label><input type="range" id="t-ls" min="0" max="255" value="0" oninput="sendSettings()"><span id="v-ls">0</span></div>
+            <div class="slider-container"><label>Lower V</label><input type="range" id="t-lv" min="0" max="255" value="230" oninput="sendSettings()"><span id="v-lv">230</span></div>
+            
+            <div class="slider-container" style="margin-top: 15px;"><label>Upper H</label><input type="range" id="t-uh" min="0" max="255" value="255" oninput="sendSettings()"><span id="v-uh">255</span></div>
+            <div class="slider-container"><label>Upper S</label><input type="range" id="t-us" min="0" max="255" value="50" oninput="sendSettings()"><span id="v-us">50</span></div>
+            <div class="slider-container"><label>Upper V</label><input type="range" id="t-uv" min="0" max="255" value="255" oninput="sendSettings()"><span id="v-uv">255</span></div>
+        </div>
+
+    </div>
+
+    <script>
+        // Cờ quản lý nút lách vật cản trên Web
+        let isAvoidEnabled = false;
+
+        // 1. Lấy dữ liệu Telemetry liên tục (100ms)
+        setInterval(() => {
+            fetch('/telemetry')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('val-speed').innerText = data.speed;
+                    document.getElementById('val-steer').innerText = data.steer;
+                    document.getElementById('val-sign').innerText = data.sign;
+
+                    // Đổi màu nút khi chuyển Mode
+                    if(data.mode === 'AUTO') {
+                        document.getElementById('btn-auto').classList.add('active-mode');
+                        document.getElementById('btn-manual').classList.remove('active-mode');
+                    } else {
+                        document.getElementById('btn-manual').classList.add('active-mode');
+                        document.getElementById('btn-auto').classList.remove('active-mode');
+                    }
+                })
+                .catch(err => console.log("Đang chờ kết nối..."));
+        }, 100);
+
+        // 2. Gửi lệnh đổi Mode (AUTO / MANUAL)
+        function setMode(mode) {
+            fetch('/control', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mode: mode })
+            });
+        }
+
+        // 3. Hàm bật/tắt lách vật cản
+        function toggleAvoidance() {
+            isAvoidEnabled = !isAvoidEnabled;
+            let btn = document.getElementById("btnAvoidToggle");
+            
+            if (isAvoidEnabled) {
+                btn.innerText = "🛑 Lách vật cản: BẬT";
+                btn.className = "avoid-on";
+            } else {
+                btn.innerText = "🛑 Lách vật cản: TẮT";
+                btn.className = "avoid-off";
+            }
+
+            // Gửi lệnh xuống Server API vừa được cập nhật ở bước trước
+            fetch('/api/toggle_avoid', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enable: isAvoidEnabled })
+            });
+        }
+
+        // 4. Gửi lệnh điều khiển xe (Manual)
+        function sendCommand(cmd) {
+            fetch('/control', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ command: cmd })
+            });
+        }
+
+        // 5. Bắt sự kiện bàn phím (W A S D)
+        let keyPressed = {};
+        document.addEventListener('keydown', function(event) {
+            if(keyPressed[event.key]) return; // Tránh gửi liên tục khi đè phím
+            keyPressed[event.key] = true;
+
+            switch(event.key.toLowerCase()) {
+                case 'w': sendCommand('UP'); break;
+                case 'a': sendCommand('LEFT'); break;
+                case 's': sendCommand('DOWN'); break;
+                case 'd': sendCommand('RIGHT'); break;
+            }
+        });
+
+        document.addEventListener('keyup', function(event) {
+            keyPressed[event.key] = false;
+            switch(event.key.toLowerCase()) {
+                case 'w':
+                case 'a':
+                case 's':
+                case 'd':
+                    sendCommand('STOP'); 
+                    break;
+            }
+        });
+
+        // 6. Gửi thông số cài đặt khi kéo thanh trượt (Trackbars)
+        function sendSettings() {
+            // Đọc giá trị từ các thanh trượt
+            const speed = document.getElementById('t-speed').value;
+            const kHeading = document.getElementById('t-kheading').value;
+            const kOffset = document.getElementById('t-koffset').value;
+            const lh = document.getElementById('t-lh').value;
+            const ls = document.getElementById('t-ls').value;
+            const lv = document.getElementById('t-lv').value;
+            const uh = document.getElementById('t-uh').value;
+            const us = document.getElementById('t-us').value;
+            const uv = document.getElementById('t-uv').value;
+
+            // Cập nhật text hiển thị trên Web
+            document.getElementById('v-speed').innerText = speed;
+            document.getElementById('v-kheading').innerText = kHeading;
+            document.getElementById('v-koffset').innerText = kOffset;
+            document.getElementById('v-lh').innerText = lh;
+            document.getElementById('v-ls').innerText = ls;
+            document.getElementById('v-lv').innerText = lv;
+            document.getElementById('v-uh').innerText = uh;
+            document.getElementById('v-us').innerText = us;
+            document.getElementById('v-uv').innerText = uv;
+
+            // Đóng gói JSON gửi về Flask Server
+            const settingsData = {
+                base_speed: parseInt(speed),
+                k_heading: parseFloat(kHeading), 
+                k_offset: parseFloat(kOffset),   
+                hsv: [parseInt(lh), parseInt(ls), parseInt(lv), parseInt(uh), parseInt(us), parseInt(uv)]
+            };
+
+            fetch('/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(settingsData)
+            });
+        }
+    </script>
+</body>
+</html>
